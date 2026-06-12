@@ -11,3 +11,5 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      - key: MAP_IMAGE_URL
+        sync: false

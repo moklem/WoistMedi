@@ -33,6 +33,11 @@ mongoose
 app.use('/api/auth', authRoutes);
 app.use('/api/friends', friendsRoutes);
 
+// Exposes server-configured map URL so all users get the same map
+app.get('/api/config', (req, res) => {
+  res.json({ mapUrl: process.env.MAP_IMAGE_URL || null });
+});
+
 if (!isDev) {
   app.use(express.static(path.join(__dirname, '../client/dist')));
   app.get('*', (req, res) =>
@@ -66,14 +71,12 @@ io.on('connection', async (socket) => {
 
   const friendIds = await getFriendIds(userId);
 
-  // Send current friend locations
   const friendLocations = {};
   friendIds.forEach(fid => {
     if (locationStore[fid]) friendLocations[fid] = locationStore[fid];
   });
   socket.emit('initial-locations', friendLocations);
 
-  // Notify online friends
   friendIds.forEach(fid => {
     if (userSockets[fid]) {
       io.to(userSockets[fid]).emit('friend-online', { userId, username: socket.username });
@@ -102,7 +105,6 @@ io.on('connection', async (socket) => {
 
   socket.on('disconnect', () => {
     delete userSockets[userId];
-    // Keep location visible for 10 min after disconnect
     setTimeout(() => {
       if (!userSockets[userId]) delete locationStore[userId];
     }, 10 * 60 * 1000);
